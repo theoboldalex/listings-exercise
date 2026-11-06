@@ -1,7 +1,8 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '../../components/AppLayout.vue';
+import FormErrors from '../../components/FormErrors.vue';
 import ListingCard from '../../components/ListingCard.vue';
 import ListingFilters from '../../components/ListingFilters.vue';
 import Pagination from '../../components/Pagination.vue';
@@ -11,7 +12,20 @@ const props = defineProps({
     branches: { type: Array, required: true },
     propertyTypes: { type: Array, required: true },
     filters: { type: Object, required: true },
+    errors: { type: Object, default: () => ({}) },
 });
+
+// Saves the applied filters (the URL), not unsubmitted edits in the form.
+const hasAppliedFilters = computed(() => Object.values(props.filters).some(Boolean));
+const saving = ref(false);
+
+function saveSearch() {
+    router.post('/saved-searches', props.filters, {
+        preserveScroll: true,
+        onStart: () => (saving.value = true),
+        onFinish: () => (saving.value = false),
+    });
+}
 
 const processing = ref(false);
 
@@ -60,10 +74,24 @@ function reset() {
             @reset="reset"
         />
 
-        <p class="mb-4 text-sm text-slate-500" aria-live="polite">
-            <span v-if="processing">Loading…</span>
-            <span v-else>{{ listings.meta.total }} listing(s) found</span>
-        </p>
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p class="text-sm text-slate-500" aria-live="polite">
+                <span v-if="processing">Loading…</span>
+                <span v-else>{{ listings.meta.total }} listing(s) found</span>
+            </p>
+
+            <button
+                v-if="hasAppliedFilters"
+                type="button"
+                :disabled="saving"
+                class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-100 disabled:opacity-50"
+                @click="saveSearch"
+            >
+                Save this search
+            </button>
+        </div>
+
+        <FormErrors :errors="errors" />
 
         <div
             v-if="listings.data.length"
