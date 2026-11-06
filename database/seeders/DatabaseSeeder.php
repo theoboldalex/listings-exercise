@@ -7,10 +7,17 @@ use App\Models\Branch;
 use App\Models\Listing;
 use App\Models\SavedSearch;
 use App\Models\User;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
+    /**
+     * Seeded listings aren't "new", so model events are off and they don't
+     * queue alert jobs.
+     */
+    use WithoutModelEvents;
+
     public function run(): void
     {
         // The demo user that the auth stub resolves every API request as.
