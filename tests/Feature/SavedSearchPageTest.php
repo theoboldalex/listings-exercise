@@ -55,6 +55,26 @@ class SavedSearchPageTest extends TestCase
         ]);
     }
 
+    /**
+     * "Save this search" on the listings page posts its `filters` prop as-is.
+     */
+    public function test_store_accepts_the_listings_page_filters_unchanged(): void
+    {
+        $me = User::factory()->create();
+        Branch::factory()->create(['region' => 'Leeds']);
+        $filters = $this->get('/?region=Leeds&max_price=300000')->viewData('page')['props']['filters'];
+
+        $this->post('/saved-searches', $filters)->assertRedirect('/saved-searches');
+
+        $this->assertDatabaseHas('saved_searches', [
+            'user_id' => $me->id,
+            'region' => 'Leeds',
+            'max_price' => 300000,
+            'min_bedrooms' => null,
+            'property_type' => null,
+        ]);
+    }
+
     public function test_store_keeps_one_search_when_the_same_criteria_are_saved_twice(): void
     {
         User::factory()->create();

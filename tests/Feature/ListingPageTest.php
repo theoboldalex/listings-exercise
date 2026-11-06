@@ -8,7 +8,9 @@ use App\Models\Listing;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\DataProviderExternal;
 use Tests\TestCase;
+use Tests\Unit\Models\SavedSearchTest;
 
 class ListingPageTest extends TestCase
 {
@@ -80,6 +82,25 @@ class ListingPageTest extends TestCase
                     ->hasAll('value', 'label')
                 )
             );
+    }
+
+    /**
+     * "View current matches" and "Save this search" assume the index filters
+     * and SavedSearch::scopeMatching() agree. Same cases, same listing.
+     *
+     * @param  array<string, mixed>  $criteria
+     */
+    #[DataProviderExternal(SavedSearchTest::class, 'criteria')]
+    public function test_index_filters_agree_with_saved_search_matching(array $criteria, bool $shouldMatch): void
+    {
+        Listing::factory()->live()
+            ->for(Branch::factory()->create(['region' => 'Leeds']))
+            ->create(['price' => 300_000, 'bedrooms' => 3, 'property_type' => PropertyType::Flat]);
+        $query = http_build_query(array_map(fn ($value) => $value instanceof PropertyType ? $value->value : $value, $criteria));
+
+        $this->get("/?{$query}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page->has('listings.data', $shouldMatch ? 1 : 0));
     }
 
     public function test_index_passes_current_filters_back_to_the_page(): void
